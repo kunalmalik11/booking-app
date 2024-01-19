@@ -15,5 +15,5 @@ app.use("/api/users",userRoutes);
 app.use("/api/auth",authRoutes);
 
 app.listen(3000,()=>{
-    console.log("server running on 5000")
+    console.log("server running on 3000")
 })
