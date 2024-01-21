@@ -28,14 +28,7 @@ router.post("/",verifyToken,[
         const imageFiles= req.files as Express.Multer.File[];
         const newHotel :HotelType= req.body;
 
-        const uploadPromises = imageFiles.map(async(image) => {
-            const base64= Buffer.from(image.buffer).toString("base64");
-            let dataURI="data:"+image.mimetype+";base64,"+base64;
-            const response=await cloudinary.v2.uploader.upload(dataURI);
-            return response.url;
-        })
-        // resolving the promise as the cloudinary response is a Promise
-        const imageUrls= await Promise.all(uploadPromises);
+        const imageUrls = await uploadImagesToCloudinary(imageFiles);
 
         newHotel.imageUrls = imageUrls;
         newHotel.lastUpdated = new Date(); 
@@ -61,5 +54,58 @@ router.get("/",verifyToken,async (req:Request,res:Response) => {
         res.status(500).json({message:"Error Fetching hotels"})
     }
 })
+
+router.get("/:id",verifyToken,async (req:Request,res:Response) => {
+
+    try{
+        const id = req.params.id.toString();
+        const hotel = await Hotel.findOne({
+            _id:id,
+            userId:req.userId,
+        });
+        res.json(hotel);
+    }catch(e){
+        res.status(500).json({message:"Error fetching hotels"});
+    }
+    
+});
+
+router.put("/:hotelId",verifyToken, upload.array("imageFiles"), async (req:Request,res:Response)=>{
+    try{
+        const hotelId= req.params.hotelId.toString();
+        const updatedHotel:HotelType = req.body;
+        updatedHotel.lastUpdated = new Date();
+        const hotel = await Hotel.findOneAndUpdate({
+            _id:hotelId,
+            userId:req.userId
+        },updatedHotel,{new:true});
+
+        if(!hotel){
+            return res.json(404).json({message:"Hotel not found"});
+        }
+        //req.files will only have those files that are uploaded by user not deleted or left as same from previous upload
+        const files=req.files as Express.Multer.File[];
+        const updatedImageUrls= await uploadImagesToCloudinary(files);
+        //updatedHotel.imageUrls will have all the urls only that user wants to keep from previous edit or add
+        hotel.imageUrls = [...updatedImageUrls, ...(updatedHotel.imageUrls || [])];
+
+        await hotel.save();
+        res.status(201).json(hotel);
+    } catch (e){
+        res.status(500).json({message:"Something went wrong"})
+    }
+})
+
+async function uploadImagesToCloudinary(imageFiles: Express.Multer.File[]) {
+    const uploadPromises = imageFiles.map(async (image) => {
+        const base64 = Buffer.from(image.buffer).toString("base64");
+        let dataURI = "data:" + image.mimetype + ";base64," + base64;
+        const response = await cloudinary.v2.uploader.upload(dataURI);
+        return response.url;
+    });
+    // resolving the promise as the cloudinary response is a Promise
+    const imageUrls = await Promise.all(uploadPromises);
+    return imageUrls;
+}
 
 export default router;
