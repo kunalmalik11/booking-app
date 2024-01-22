@@ -19,6 +19,7 @@ router.get("/search",async (req:Request,res:Response) => {
                 pages: Math.ceil(total/pageSize)
             },
         };
+        res.json(response);
 
     } catch(error){
         res.status(500).json({message:"Something went wrong"})
