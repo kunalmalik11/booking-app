@@ -6,7 +6,6 @@ import AddHotel from "./pages/Hotel"
 import { useAppContext } from "./contexts/AppContext"
 import MyHotels from "./pages/MyHotels"
 import EditHotel from "./pages/EditHotel"
-import SearchBar from "./components/SearchBar"
 import Search from "./pages/Search"
 
 function App() {
